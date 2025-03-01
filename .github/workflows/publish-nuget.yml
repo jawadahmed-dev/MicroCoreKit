@@ -1,0 +1,50 @@
+name: Publish NuGet Package
+
+on:
+  push:
+    tags:
+      - "v*.*.*"  # Runs when a tag like v1.0.0 is pushed
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for tag-based versioning
+
+      - name: Extract Version from Tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      - name: Setup .NET 6
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 6.0.x
+
+      - name: Restore Dependencies
+        run: dotnet restore
+
+      - name: Build the Project
+        run: dotnet build --configuration Release
+
+      - name: Pack the NuGet Package
+        run: |
+          dotnet pack --configuration Release \
+            --output ./artifacts \
+            -p:Version=${{ env.VERSION }}
+
+      - name: Push Package to Azure Artifacts
+        run: |
+          dotnet nuget add source ${{ secrets.AZURE_ARTIFACTS_FEED_URL }} \
+            --name AzureArtifacts \
+            --username "any" \
+            --password ${{ secrets.AZURE_ARTIFACTS_PAT }} \
+            --store-password-in-clear-text
+          dotnet nuget push "./artifacts/*.nupkg" \
+            --source AzureArtifacts \
+            --api-key ${{ secrets.AZURE_ARTIFACTS_PAT }} \
+            --skip-duplicate
