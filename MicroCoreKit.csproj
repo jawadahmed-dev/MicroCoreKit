@@ -24,7 +24,6 @@
     <Folder Include="Database\Contexts\" />
     <Folder Include="Enums\" />
     <Folder Include="Dtos\" />
-    <Folder Include="Repositories\" />
     <Folder Include="RequestValidators\" />
   </ItemGroup>
 
